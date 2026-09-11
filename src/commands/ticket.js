@@ -30,7 +30,7 @@ module.exports = {
   async execute(message) {
     const guild = message.guild;
     if (!guild) return message.reply('Este comando solo funciona en servidores.');
-    const targetChannel = guild.channels.cache.get(TICKET_CHANNEL_ID);
+    const targetChannel = await guild.channels.fetch(TICKET_CHANNEL_ID).catch(() => null);
     if (!targetChannel) return message.reply('No se encontró el canal de tickets configurado.');
 
     await targetChannel.send({ embeds: [buildTicketStarterEmbed()], components: buildTicketStarterComponents() });
@@ -44,7 +44,7 @@ module.exports = {
 
       const guild = interaction.guild;
       if (!guild) return interaction.reply({ content: 'Este comando solo funciona en servidores.', ephemeral: true });
-      const targetChannel = guild.channels.cache.get(TICKET_CHANNEL_ID);
+      const targetChannel = await guild.channels.fetch(TICKET_CHANNEL_ID).catch(() => null);
       if (!targetChannel) return interaction.reply({ content: 'No se encontró el canal de tickets configurado.', ephemeral: true });
 
       await targetChannel.send({ embeds: [buildTicketStarterEmbed()], components: buildTicketStarterComponents() });
