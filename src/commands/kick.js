@@ -16,7 +16,7 @@ module.exports = {
     await member.kick(reason);
     message.channel.send(`${member.user.tag} was kicked. Reason: ${reason}`);
   },
-  data: { name: 'kick', description: 'Kick a member', options: [ { name: 'target', description: 'User to kick', type: 6, required: true }, { name: 'reason', description: 'Reason', type: 3, required: false } ] },
+  data: { name: 'kick', description: 'Kick a member', default_member_permissions: '16', options: [ { name: 'target', description: 'User to kick', type: 6, required: true }, { name: 'reason', description: 'Reason', type: 3, required: false } ] },
   async executeInteraction(interaction) {
     try {
       if (!interaction.member.permissions.has(PermissionFlagsBits.KickMembers)) return interaction.reply({ content: 'You do not have permission to kick members.', ephemeral: true });

@@ -50,7 +50,10 @@ client.on('messageCreate', async (message) => {
   try {
     const levelUp = await awardMessageXp(message);
     if (levelUp) {
-      const levelChannel = await message.guild.channels.fetch(LEVEL_UP_CHANNEL_ID).catch(() => null);
+      const levelChannel = await client.channels.fetch(LEVEL_UP_CHANNEL_ID).catch(error => {
+        console.error('Could not fetch the level-up channel:', error);
+        return null;
+      });
       if (levelChannel) {
         await levelChannel.send(`<@${message.author.id}>! You’ve leveled up to ` + '`Level ' + levelUp.level + '`!');
       }

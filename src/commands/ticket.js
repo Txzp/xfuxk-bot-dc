@@ -31,7 +31,7 @@ function buildTicketStarterComponents() {
 module.exports = {
   name: 'ticket',
   description: 'Create the ticket panel',
-  data: { name: 'ticket', description: 'Create the ticket panel' },
+  data: { name: 'ticket', description: 'Create the ticket panel', default_member_permissions: '16' },
   async execute(message) {
     if (message.author.id !== TICKET_COMMAND_OWNER_ID) return;
     const guild = message.guild;

@@ -3,7 +3,7 @@ const { PermissionFlagsBits } = require('discord.js');
 module.exports = {
   name: 'add-member',
   description: 'Add a member to the current ticket',
-  data: { name: 'add-member', description: 'Add a member to the current ticket', options: [ { name: 'user', description: 'User to add', type: 6, required: true } ] },
+  data: { name: 'add-member', description: 'Add a member to the current ticket', default_member_permissions: '16', options: [ { name: 'user', description: 'User to add', type: 6, required: true } ] },
   async executeInteraction(interaction) {
     try {
       const channel = interaction.channel;

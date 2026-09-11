@@ -16,7 +16,7 @@ module.exports = {
     await member.ban({ reason });
     message.channel.send(`${member.user.tag} was banned. Reason: ${reason}`);
   },
-  data: { name: 'ban', description: 'Ban a member', options: [ { name: 'target', description: 'User to ban', type: 6, required: true }, { name: 'reason', description: 'Reason', type: 3, required: false } ] },
+  data: { name: 'ban', description: 'Ban a member', default_member_permissions: '16', options: [ { name: 'target', description: 'User to ban', type: 6, required: true }, { name: 'reason', description: 'Reason', type: 3, required: false } ] },
   async executeInteraction(interaction) {
     try {
       if (!interaction.member.permissions.has(PermissionFlagsBits.BanMembers)) return interaction.reply({ content: 'You do not have permission to ban members.', ephemeral: true });

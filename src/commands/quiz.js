@@ -12,7 +12,7 @@ module.exports = {
     message.channel.send('Incorrect. The answer was C) Paris.');
   }
   ,
-  data: { name: 'quiz', description: 'Ask the user a quick question' },
+  data: { name: 'quiz', description: 'Ask the user a quick question', default_member_permissions: '16' },
   async executeInteraction(interaction) {
     try {
       const question = 'What is the capital of France?\nA) Rome\nB) Madrid\nC) Paris\nD) Berlin';

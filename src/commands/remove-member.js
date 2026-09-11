@@ -3,7 +3,7 @@ const { PermissionFlagsBits } = require('discord.js');
 module.exports = {
   name: 'remove-member',
   description: 'Quitar un miembro del ticket actual',
-  data: { name: 'remove-member', description: 'Remove a member from the current ticket', options: [ { name: 'user', description: 'User to remove', type: 6, required: true } ] },
+  data: { name: 'remove-member', description: 'Remove a member from the current ticket', default_member_permissions: '16', options: [ { name: 'user', description: 'User to remove', type: 6, required: true } ] },
   async executeInteraction(interaction) {
     try {
       const channel = interaction.channel;

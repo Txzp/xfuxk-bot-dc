@@ -3,7 +3,7 @@ const { PermissionFlagsBits } = require('discord.js');
 module.exports = {
   name: 'close-ticket',
   description: 'Close the current ticket (optional reason)',
-  data: { name: 'close-ticket', description: 'Close the current ticket (optional reason)', options: [ { name: 'reason', description: 'Closure reason', type: 3, required: false } ] },
+  data: { name: 'close-ticket', description: 'Close the current ticket (optional reason)', default_member_permissions: '16', options: [ { name: 'reason', description: 'Closure reason', type: 3, required: false } ] },
   async executeInteraction(interaction) {
     try {
       const channel = interaction.channel;

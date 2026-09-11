@@ -64,7 +64,7 @@ async function ensureLevelRoles(guild) {
   if (!separator) {
     separator = await guild.roles.create({
       name: SEPARATOR_ROLE_NAME,
-      colors: { primary: 0x2b2d31 },
+      colors: { primaryColor: 0x2b2d31 },
       reason: 'Level system separator role'
     });
   }
@@ -74,11 +74,11 @@ async function ensureLevelRoles(guild) {
     if (!role) {
       role = await guild.roles.create({
         name: `${LEVEL_ROLE_PREFIX}${level}`,
-        colors: { primary: LEVEL_COLORS[level - 1] },
+        colors: { primaryColor: LEVEL_COLORS[level - 1] },
         reason: 'Level system role'
       });
     } else {
-      await role.edit({ colors: { primary: LEVEL_COLORS[level - 1] } }).catch(() => {});
+      await role.edit({ colors: { primaryColor: LEVEL_COLORS[level - 1] } }).catch(() => {});
     }
     roles.push(role);
   }

@@ -8,7 +8,7 @@ module.exports = {
     message.channel.send('Channel locked.');
   }
   ,
-  data: { name: 'lock', description: 'Lock the current channel for @everyone' },
+  data: { name: 'lock', description: 'Lock the current channel for @everyone', default_member_permissions: '16' },
   async executeInteraction(interaction) {
     try {
       if (!interaction.member.permissions.has('MANAGE_CHANNELS')) return interaction.reply({ content: 'You do not have permission to manage channels.', ephemeral: true });
