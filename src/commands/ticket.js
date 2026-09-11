@@ -43,7 +43,11 @@ module.exports = {
   },
   async executeInteraction(interaction) {
     try {
-      if (interaction.user.id !== TICKET_COMMAND_OWNER_ID) return;
+      if (interaction.user.id !== TICKET_COMMAND_OWNER_ID) {
+        await interaction.deferReply({ ephemeral: true });
+        await interaction.deleteReply();
+        return;
+      }
       await interaction.deferReply({ ephemeral: true });
       if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
         return interaction.editReply('You do not have permission to create the ticket panel.');
