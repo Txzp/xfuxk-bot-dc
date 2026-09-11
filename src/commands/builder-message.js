@@ -5,11 +5,11 @@ function normalizeBuilderText(text) {
 
 module.exports = {
   name: 'builder-message',
-  description: 'Crea un mensaje embed personalizado para tu canal',
+  description: 'Create a custom message for your channel',
   options: [
-    { name: 'title', description: 'Título del embed', type: 3, required: true },
-    { name: 'description', description: 'Descripción del embed', type: 3, required: true },
-    { name: 'color', description: 'Color hexadecimal (sin #)', type: 3, required: false }
+    { name: 'title', description: 'Message title', type: 3, required: true },
+    { name: 'description', description: 'Message description', type: 3, required: true },
+    { name: 'color', description: 'Hex color without #', type: 3, required: false }
   ],
   async execute(message, args, rawArgs) {
     // Prefer rawArgs exactly as provided. Do not trim or alter description.
@@ -37,15 +37,16 @@ module.exports = {
   },
   data: {
     name: 'builder-message',
-    description: 'Crea un mensaje embed personalizado para tu canal',
+    description: 'Create a custom message for your channel',
     options: [
-      { name: 'title', description: 'Título del embed', type: 3, required: true },
-      { name: 'description', description: 'Descripción del embed', type: 3, required: true },
-      { name: 'color', description: 'Color hexadecimal sin #', type: 3, required: false }
+      { name: 'title', description: 'Message title', type: 3, required: true },
+      { name: 'description', description: 'Message description', type: 3, required: true },
+      { name: 'color', description: 'Hex color without #', type: 3, required: false }
     ]
   },
   async executeInteraction(interaction) {
     try {
+      await interaction.deferReply({ ephemeral: true });
       const title = interaction.options.getString('title');
       const desc = interaction.options.getString('description');
 
@@ -67,21 +68,14 @@ module.exports = {
           console.warn('[builder-message] could not inspect sent channel message:', e && e.message);
         }
       } else {
-        // Fallback: reply directly to the interaction if no channel is available
-        if (!interaction.replied) {
-          await interaction.reply({ content: finalContent });
-        } else {
-          await interaction.followUp({ content: finalContent });
-        }
+        throw new Error('The interaction channel is unavailable.');
       }
 
-      // Acknowledge the interaction ephemerally if not already acknowledged
-      if (!interaction.replied && !interaction.deferred) {
-        await interaction.reply({ content: 'Mensaje enviado.', ephemeral: true });
-      }
+      await interaction.deleteReply();
     } catch (err) {
       console.error('BuilderMessage interaction error', err);
-      if (!interaction.replied) await interaction.reply({ content: 'Error creando el mensaje builder.', ephemeral: true });
+      if (interaction.deferred && !interaction.replied) await interaction.editReply('There was an error creating the message.');
+      else if (!interaction.replied) await interaction.reply({ content: 'There was an error creating the message.', ephemeral: true });
     }
   }
 };

@@ -1,5 +1,5 @@
 module.exports = (client) => {
   client.once('ready', () => {
-    console.log(`${client.user.tag} está conectado.`);
+    console.log(`${client.user.tag} is online.`);
   });
 };

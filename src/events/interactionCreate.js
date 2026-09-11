@@ -4,7 +4,7 @@ const ticketSelections = new Map();
 const ticketOwners = new Map();
 const ticketClaimers = new Map();
 const TICKET_CATEGORY_ID = process.env.TICKET_CATEGORY_ID || '1547807367758872586';
-const TICKET_CHANNEL_ID = process.env.TICKET_CHANNEL_ID || '1536241118000324658';
+const TICKET_CHANNEL_ID = process.env.TICKET_CHANNEL_ID || '1545635562403401799';
 const STAFF_ROLE_IDS = [
   '1529556626300866671',
   '1529668878517407824',
@@ -18,13 +18,14 @@ module.exports = (client) => {
       if (interaction.isStringSelectMenu && interaction.isStringSelectMenu()) {
         if (interaction.customId !== 'ticket_reason_select') return;
         ticketSelections.set(interaction.user.id, interaction.values[0]);
-        // Reply ephemerally with a Next button only visible to the user who selected
-        try {
-          const nextBtn = new ButtonBuilder().setCustomId(`ticket_next_button:${interaction.user.id}`).setLabel('Next').setStyle(ButtonStyle.Primary);
-          await interaction.reply({ content: `Seleccionaste: ${interaction.values[0]}`, components: [new ActionRowBuilder().addComponents(nextBtn)], ephemeral: true });
-        } catch (e) {
-          await interaction.reply({ content: `Seleccionaste: ${interaction.values[0]}`, ephemeral: true });
-        }
+        const modal = new ModalBuilder().setCustomId(`ticket_recruit_modal:${interaction.user.id}`).setTitle('Open Ticket');
+        const input = new TextInputBuilder()
+          .setCustomId('open_details')
+          .setLabel("Describe what's happening")
+          .setStyle(TextInputStyle.Paragraph)
+          .setRequired(true);
+        modal.addComponents(new ActionRowBuilder().addComponents(input));
+        await interaction.showModal(modal);
         return;
       }
 
@@ -35,11 +36,11 @@ module.exports = (client) => {
           await interaction.deferReply({ ephemeral: true }).catch(() => {});
           const reason = ticketSelections.get(interaction.user.id);
           if (!reason) {
-            return interaction.editReply({ content: 'Primero selecciona una razón en el dropdown.' });
+            return interaction.editReply({ content: 'Please select a ticket type first.' });
           }
 
           const guild = interaction.guild;
-          if (!guild) return interaction.editReply({ content: 'Este comando solo funciona en servidores.' });
+          if (!guild) return interaction.editReply({ content: 'This command can only be used in a server.' });
 
           // Fetch the category in case it's not cached
           let category = null;
@@ -48,7 +49,7 @@ module.exports = (client) => {
           } catch (e) {
             category = null;
           }
-          if (!category) return interaction.editReply({ content: 'No se encontró la categoría de tickets.' });
+          if (!category) return interaction.editReply({ content: 'The configured ticket category could not be found.' });
 
           const nameBase = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'ticket';
           const ticketName = `ticket-${nameBase}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -59,7 +60,7 @@ module.exports = (client) => {
               name: ticketName,
               type: ChannelType.GuildText,
               parent: category.id,
-              topic: `Ticket de ${interaction.user.tag} | Razón: ${reason}`
+              topic: `Ticket from ${interaction.user.tag} | ${reason}`
             });
             await ticketChannel.permissionOverwrites.set([
               {
@@ -80,8 +81,8 @@ module.exports = (client) => {
               }))
             ]);
           } catch (err) {
-            console.error('Error creando canal de ticket:', err);
-            return interaction.editReply({ content: 'Error creando el canal de ticket. Revisa permisos y la categoría.' });
+            console.error('Error creating ticket channel:', err);
+            return interaction.editReply({ content: 'There was an error creating the ticket channel. Check permissions and the category.' });
           }
 
           // register owner for this ticket channel
@@ -97,52 +98,52 @@ module.exports = (client) => {
               components: [new ActionRowBuilder().addComponents(claimButton, closeButton)]
             });
           } catch (err) {
-            console.error('Error enviando mensaje en canal de ticket:', err);
+            console.error('Error sending the ticket message:', err);
             try {
-              await interaction.editReply({ content: `Ticket creado: <#${ticketChannel.id}> — pero no pude enviar el mensaje inicial en ese canal. Revisa permisos.` });
+              await interaction.editReply({ content: `Ticket created: <#${ticketChannel.id}>, but I could not send the initial message. Check permissions.` });
             } catch (e) {
-              console.error('No pude editar la respuesta diferida:', e);
+              console.error('Could not edit the deferred response:', e);
             }
             return;
           }
 
-          return interaction.editReply({ content: `Ticket creado: <#${ticketChannel.id}>` });
+          return interaction.editReply({ content: `Ticket created: <#${ticketChannel.id}>` });
         }
 
         if (customId === 'ticket_claim_button') {
           const channel = interaction.channel;
-          if (!channel || !ticketOwners.has(channel.id)) return interaction.reply({ content: 'Este botón solo funciona en canales de ticket.', ephemeral: true });
+          if (!channel || !ticketOwners.has(channel.id)) return interaction.reply({ content: 'This button only works in ticket channels.', ephemeral: true });
           const isStaff = interaction.member.roles.cache.some(r => STAFF_ROLE_IDS.includes(r.id));
-          if (!isStaff) return interaction.reply({ content: 'No tienes permisos para reclamar tickets.', ephemeral: true });
+          if (!isStaff) return interaction.reply({ content: 'You do not have permission to claim tickets.', ephemeral: true });
           const ownerId = ticketOwners.get(channel.id);
           ticketClaimers.set(channel.id, interaction.user.id);
           if (ownerId) {
-            await channel.send(`<@${ownerId}>, tu ticket ha sido reclamado por <@${interaction.user.id}>`);
+            await channel.send(`<@${ownerId}>, your ticket has been claimed by <@${interaction.user.id}>`);
           } else {
-            await channel.send(`Ticket reclamado por <@${interaction.user.id}>`);
+            await channel.send(`Ticket claimed by <@${interaction.user.id}>`);
           }
-          await interaction.reply({ content: 'Ticket reclamado.', ephemeral: true });
+          await interaction.reply({ content: 'Ticket claimed.', ephemeral: true });
           return;
         }
 
         if (customId === 'ticket_close_button') {
           const channel = interaction.channel;
-          if (!channel || !ticketOwners.has(channel.id)) return interaction.reply({ content: 'Este botón solo funciona en canales de ticket.', ephemeral: true });
+          if (!channel || !ticketOwners.has(channel.id)) return interaction.reply({ content: 'This button only works in ticket channels.', ephemeral: true });
           const isStaffClose = interaction.member.roles.cache.some(r => STAFF_ROLE_IDS.includes(r.id));
-          if (!isStaffClose) return interaction.reply({ content: 'No tienes permisos para cerrar tickets.', ephemeral: true });
+          if (!isStaffClose) return interaction.reply({ content: 'You do not have permission to close tickets.', ephemeral: true });
           const modal = new ModalBuilder()
             .setCustomId(`ticket_close_modal:${channel.id}`)
-            .setTitle('Cerrar ticket');
+            .setTitle('Close Ticket');
           const input = new TextInputBuilder()
             .setCustomId('close_reason')
-            .setLabel('Motivo del cierre')
+            .setLabel('Closure reason')
             .setStyle(TextInputStyle.Paragraph)
             .setRequired(true);
           const row = new ActionRowBuilder().addComponents(input);
           modal.addComponents(row);
           await interaction.showModal(modal).catch(err => {
-            console.error('Error mostrando modal:', err);
-            interaction.reply({ content: 'No pude abrir el modal de cierre.', ephemeral: true }).catch(() => {});
+            console.error('Error showing close modal:', err);
+            interaction.reply({ content: 'I could not open the close modal.', ephemeral: true }).catch(() => {});
           });
           return;
         }
@@ -150,7 +151,7 @@ module.exports = (client) => {
         if (customId && customId.startsWith('ticket_next_button:')) {
           const parts = customId.split(':');
           const userId = parts[1];
-          if (userId !== interaction.user.id) return interaction.reply({ content: 'Solo quien seleccionó puede continuar.', ephemeral: true });
+          if (userId !== interaction.user.id) return interaction.reply({ content: 'Only the user who selected this option can continue.', ephemeral: true });
           // Show one input for the ticket explanation.
           const modal = new ModalBuilder().setCustomId(`ticket_recruit_modal:${interaction.user.id}`).setTitle('Open Ticket');
           const input = new TextInputBuilder()
@@ -160,8 +161,8 @@ module.exports = (client) => {
             .setRequired(true);
           modal.addComponents(new ActionRowBuilder().addComponents(input));
           await interaction.showModal(modal).catch(err => {
-            console.error('Error mostrando recruitment modal:', err);
-            interaction.reply({ content: 'No pude abrir el modal de recruitment.', ephemeral: true }).catch(() => {});
+            console.error('Error showing ticket modal:', err);
+            interaction.reply({ content: 'I could not open the ticket modal.', ephemeral: true }).catch(() => {});
           });
           return;
         }
@@ -174,9 +175,9 @@ module.exports = (client) => {
           const channelId = parts[1];
           const reason = interaction.fields.getTextInputValue('close_reason');
           const channel = interaction.guild.channels.cache.get(channelId) || await interaction.guild.channels.fetch(channelId).catch(() => null);
-          await interaction.reply({ content: 'Cerrando ticket...', ephemeral: true }).catch(() => {});
+          await interaction.reply({ content: 'Closing ticket...', ephemeral: true }).catch(() => {});
           if (channel) {
-            await channel.send({ content: `Ticket cerrado por <@${interaction.user.id}>. Razón: ${reason}` }).catch(() => {});
+            await channel.send({ content: `Ticket closed by <@${interaction.user.id}>. Reason: ${reason}` }).catch(() => {});
             // send log embed to logs channel
             try {
               const logsChannel = await interaction.guild.channels.fetch(LOGS_CHANNEL_ID).catch(() => null);
@@ -197,16 +198,16 @@ module.exports = (client) => {
                 await logsChannel.send({ embeds: [logEmbed] }).catch(() => {});
               }
             } catch (e) {
-              console.error('Error enviando log embed:', e);
+              console.error('Error sending ticket log:', e);
             }
             // wait 3 seconds then delete
             setTimeout(async () => {
               try {
                 ticketOwners.delete(channel.id);
                 ticketClaimers.delete(channel.id);
-                await channel.delete('Ticket cerrado');
+                await channel.delete('Ticket closed');
               } catch (e) {
-                console.error('Error borrando canal de ticket:', e);
+                console.error('Error deleting ticket channel:', e);
               }
             }, 3000);
           }
@@ -217,16 +218,16 @@ module.exports = (client) => {
           const parts = custom.split(':');
           const userId = parts[1];
           // only allow original user to submit
-          if (userId !== interaction.user.id) return interaction.reply({ content: 'No autorizado.', ephemeral: true });
+          if (userId !== interaction.user.id) return interaction.reply({ content: 'You are not authorized.', ephemeral: true });
           const openDetails = interaction.fields.getTextInputValue('open_details');
           await interaction.reply({ content: 'Creando ticket...', ephemeral: true }).catch(() => {});
           const guild = interaction.guild;
-          if (!guild) return interaction.followUp({ content: 'Este comando solo funciona en servidores.', ephemeral: true });
+          if (!guild) return interaction.followUp({ content: 'This command can only be used in a server.', ephemeral: true });
 
           // fetch category
           let category = null;
           try { category = await guild.channels.fetch(TICKET_CATEGORY_ID).catch(() => null); } catch (e) { category = null; }
-          if (!category) return interaction.followUp({ content: 'No se encontró la categoría de tickets.', ephemeral: true });
+          if (!category) return interaction.followUp({ content: 'The configured ticket category could not be found.', ephemeral: true });
 
           const nameBase = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'ticket';
           const ticketName = `ticket-${nameBase}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -245,17 +246,17 @@ module.exports = (client) => {
               name: ticketName,
               type: ChannelType.GuildText,
               parent: category.id,
-              topic: `Ticket de ${interaction.user.tag} | ${openDetails}`
+              topic: `Ticket from ${interaction.user.tag} | ${openDetails}`
             });
             await ticketChannel.permissionOverwrites.set(overwrites);
           } catch (err) {
-            console.error('Error creando canal de ticket (recruit):', err);
-            return interaction.followUp({ content: 'Error creando canal de ticket. Revisa permisos.', ephemeral: true });
+            console.error('Error creating ticket channel:', err);
+            return interaction.followUp({ content: 'There was an error creating the ticket channel. Check permissions.', ephemeral: true });
           }
 
           // register owner
           try { ticketOwners.set(ticketChannel.id, interaction.user.id); } catch (e) { }
-          const selectedOption = ticketSelections.get(interaction.user.id) || 'No especificado';
+          const selectedOption = ticketSelections.get(interaction.user.id) || 'Unknown';
           ticketSelections.delete(interaction.user.id);
 
           // Send the ticket details as plain text with the action buttons.
@@ -266,10 +267,10 @@ module.exports = (client) => {
 
           try {
             await ticketChannel.send({ content: ticketMessage, components: [new ActionRowBuilder().addComponents(claimButton, closeButton)] });
-            await interaction.followUp({ content: `Ticket creado: <#${ticketChannel.id}>`, ephemeral: true });
+            await interaction.followUp({ content: `Ticket created: <#${ticketChannel.id}>`, ephemeral: true });
           } catch (err) {
-            console.error('Error enviando embed en canal de ticket (recruit):', err);
-            await interaction.followUp({ content: `Ticket creado: <#${ticketChannel.id}> — falló enviar embed. Revisa permisos.`, ephemeral: true });
+            console.error('Error sending ticket message:', err);
+            await interaction.followUp({ content: `Ticket created: <#${ticketChannel.id}>, but sending the message failed. Check permissions.`, ephemeral: true });
           }
 
           return;
@@ -278,22 +279,22 @@ module.exports = (client) => {
 
       if (interaction.isChatInputCommand && interaction.isChatInputCommand()) {
         const cmd = client.commands.get(interaction.commandName);
-        if (!cmd) return interaction.reply({ content: 'Comando no implementado.', ephemeral: true });
+        if (!cmd) return interaction.reply({ content: 'Command not implemented.', ephemeral: true });
 
         try {
           if (typeof cmd.executeInteraction === 'function') {
             await cmd.executeInteraction(interaction, client);
           } else {
-            await interaction.reply({ content: `Comando '${interaction.commandName}' recibido.`, ephemeral: true });
+            await interaction.reply({ content: `Command '${interaction.commandName}' received.`, ephemeral: true });
           }
         } catch (err) {
-          console.error('Error al ejecutar interaction command:', err);
-          if (interaction.replied || interaction.deferred) await interaction.editReply('Error ejecutando el comando.');
-          else await interaction.reply({ content: 'Error ejecutando el comando.', ephemeral: true });
+            console.error('Error executing interaction command:', err);
+            if (interaction.replied || interaction.deferred) await interaction.editReply('There was an error executing the command.');
+            else await interaction.reply({ content: 'There was an error executing the command.', ephemeral: true });
         }
       }
     } catch (err) {
-      console.error('Error en interactionCreate handler', err);
+      console.error('Error in interactionCreate handler:', err);
     }
   });
 };

@@ -2,6 +2,7 @@ const { ActionRowBuilder, StringSelectMenuBuilder, PermissionFlagsBits } = requi
 
 const TICKET_CHANNEL_ID = process.env.TICKET_CHANNEL_ID || '1545635562403401799';
 const TICKET_CATEGORY_ID = process.env.TICKET_CATEGORY_ID || '1547807367758872586';
+const TICKET_COMMAND_OWNER_ID = '1457132860216709182';
 
 const TICKET_STARTER_MESSAGE = `**:ticket:  Need Help?**
 
@@ -29,33 +30,36 @@ function buildTicketStarterComponents() {
 
 module.exports = {
   name: 'ticket',
-  description: 'Crea un mensaje de ticket con dropdown y botón',
-  data: { name: 'ticket', description: 'Crea un mensaje de ticket con dropdown y botón' },
+  description: 'Create the ticket panel',
+  data: { name: 'ticket', description: 'Create the ticket panel' },
   async execute(message) {
+    if (message.author.id !== TICKET_COMMAND_OWNER_ID) return;
     const guild = message.guild;
-    if (!guild) return message.reply('Este comando solo funciona en servidores.');
+    if (!guild) return message.reply('This command can only be used in a server.');
     const targetChannel = await guild.channels.fetch(TICKET_CHANNEL_ID).catch(() => null);
-    if (!targetChannel) return message.reply('No se encontró el canal de tickets configurado.');
+    if (!targetChannel) return message.reply('The configured ticket channel could not be found.');
 
     await targetChannel.send({ content: TICKET_STARTER_MESSAGE, components: buildTicketStarterComponents() });
-    await message.reply({ content: `Mensaje de ticket creado en <#${TICKET_CHANNEL_ID}>`, ephemeral: true });
   },
   async executeInteraction(interaction) {
     try {
+      if (interaction.user.id !== TICKET_COMMAND_OWNER_ID) return;
+      await interaction.deferReply({ ephemeral: true });
       if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
-        return interaction.reply({ content: 'No tienes permisos para crear el mensaje de ticket.', ephemeral: true });
+        return interaction.editReply('You do not have permission to create the ticket panel.');
       }
 
       const guild = interaction.guild;
-      if (!guild) return interaction.reply({ content: 'Este comando solo funciona en servidores.', ephemeral: true });
+      if (!guild) return interaction.editReply('This command can only be used in a server.');
       const targetChannel = await guild.channels.fetch(TICKET_CHANNEL_ID).catch(() => null);
-      if (!targetChannel) return interaction.reply({ content: 'No se encontró el canal de tickets configurado.', ephemeral: true });
+      if (!targetChannel) return interaction.editReply('The configured ticket channel could not be found.');
 
       await targetChannel.send({ content: TICKET_STARTER_MESSAGE, components: buildTicketStarterComponents() });
-      await interaction.reply({ content: `Mensaje de ticket creado en <#${TICKET_CHANNEL_ID}>`, ephemeral: true });
+      await interaction.deleteReply();
     } catch (err) {
       console.error('Ticket interaction error', err);
-      if (!interaction.replied) await interaction.reply({ content: 'Error creando el mensaje de ticket.', ephemeral: true });
+      if (interaction.deferred && !interaction.replied) await interaction.editReply('There was an error creating the ticket panel.');
+      else if (!interaction.replied) await interaction.reply({ content: 'There was an error creating the ticket panel.', ephemeral: true });
     }
   }
 };

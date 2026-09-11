@@ -64,10 +64,10 @@ client.on('messageCreate', async (message) => {
     await command.execute(message, args, rawArgs, client);
   } catch (err) {
     console.error(err);
-    message.reply('Ocurrió un error ejecutando el comando.');
+    message.reply('There was an error executing the command.');
   }
 });
 
 client.login(process.env.TOKEN).catch(err => {
-  console.error('Fallo al iniciar sesión. Revisa tu TOKEN en .env', err);
+  console.error('Login failed. Check your TOKEN in .env.', err);
 });
