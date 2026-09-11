@@ -5,6 +5,9 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
+const { awardMessageXp } = require('./level-system');
+
+const LEVEL_UP_CHANNEL_ID = '1547805832748732506';
 
 const client = new Client({
   intents: [
@@ -43,6 +46,19 @@ const PREFIX = process.env.PREFIX || '!';
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
+
+  try {
+    const levelUp = await awardMessageXp(message);
+    if (levelUp) {
+      const levelChannel = await message.guild.channels.fetch(LEVEL_UP_CHANNEL_ID).catch(() => null);
+      if (levelChannel) {
+        await levelChannel.send(`<@${message.author.id}> just reached **Level ${levelUp.level}**!`);
+      }
+    }
+  } catch (err) {
+    console.error('Error awarding message XP:', err);
+  }
+
   if (!message.content.startsWith(PREFIX)) return;
 
   // Preserve the raw content after the prefix without trimming

@@ -190,7 +190,9 @@ module.exports = (client) => {
             const ownerId = ticketOwners.get(channel.id);
             if (ownerId) {
               const owner = await client.users.fetch(ownerId).catch(() => null);
-              if (owner) await owner.send(reason).catch(() => {});
+              if (owner) {
+                await owner.send(`🎫 Ticket Closed by ${interaction.user.tag}\n\nReason ${reason}\nThank you for opened ticket!`).catch(() => {});
+              }
             }
             // send log embed to logs channel
             try {
