@@ -5,6 +5,7 @@ const ticketOwners = new Map();
 const ticketClaimers = new Map();
 const TICKET_CATEGORY_ID = process.env.TICKET_CATEGORY_ID || '1547807367758872586';
 const TICKET_CHANNEL_ID = process.env.TICKET_CHANNEL_ID || '1545635562403401799';
+const MEMBER_ROLE_ID = '1545627254799736886';
 const STAFF_ROLE_IDS = [
   '1529556626300866671',
   '1529668878517407824',
@@ -68,6 +69,10 @@ module.exports = (client) => {
                 deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
               },
               {
+                id: MEMBER_ROLE_ID,
+                deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
+              },
+              {
                 id: interaction.user.id,
                 allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory]
               },
@@ -122,7 +127,7 @@ module.exports = (client) => {
           } else {
             await channel.send(`Ticket claimed by <@${interaction.user.id}>`);
           }
-          await interaction.reply({ content: 'Ticket claimed.', ephemeral: true });
+          await interaction.reply({ content: `<@${interaction.user.id}> Claim this ticket!`, ephemeral: true });
           return;
         }
 
@@ -133,7 +138,7 @@ module.exports = (client) => {
           if (!isStaffClose) return interaction.reply({ content: 'You do not have permission to close tickets.', ephemeral: true });
           const modal = new ModalBuilder()
             .setCustomId(`ticket_close_modal:${channel.id}`)
-            .setTitle('Close Ticket');
+            .setTitle('Ticket Close Reason');
           const input = new TextInputBuilder()
             .setCustomId('close_reason')
             .setLabel('Closure reason')
@@ -177,7 +182,12 @@ module.exports = (client) => {
           const channel = interaction.guild.channels.cache.get(channelId) || await interaction.guild.channels.fetch(channelId).catch(() => null);
           await interaction.reply({ content: 'Closing ticket...', ephemeral: true }).catch(() => {});
           if (channel) {
-            await channel.send({ content: `Ticket closed by <@${interaction.user.id}>. Reason: ${reason}` }).catch(() => {});
+            await channel.send({ content: `**:ticket: Ticket Closed by** <@${interaction.user.id}>\n\n**Reason:** ${reason}\n**Thank you for opened ticket!**` }).catch(() => {});
+            const ownerId = ticketOwners.get(channel.id);
+            if (ownerId) {
+              const owner = await client.users.fetch(ownerId).catch(() => null);
+              if (owner) await owner.send(reason).catch(() => {});
+            }
             // send log embed to logs channel
             try {
               const logsChannel = await interaction.guild.channels.fetch(LOGS_CHANNEL_ID).catch(() => null);
@@ -220,14 +230,14 @@ module.exports = (client) => {
           // only allow original user to submit
           if (userId !== interaction.user.id) return interaction.reply({ content: 'You are not authorized.', ephemeral: true });
           const openDetails = interaction.fields.getTextInputValue('open_details');
-          await interaction.reply({ content: 'Creando ticket...', ephemeral: true }).catch(() => {});
+          await interaction.deferReply({ ephemeral: true }).catch(() => {});
           const guild = interaction.guild;
           if (!guild) return interaction.followUp({ content: 'This command can only be used in a server.', ephemeral: true });
 
           // fetch category
           let category = null;
           try { category = await guild.channels.fetch(TICKET_CATEGORY_ID).catch(() => null); } catch (e) { category = null; }
-          if (!category) return interaction.followUp({ content: 'The configured ticket category could not be found.', ephemeral: true });
+          if (!category || category.type !== ChannelType.GuildCategory) return interaction.editReply('The configured ticket category could not be found.');
 
           const nameBase = interaction.user.username.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 8) || 'ticket';
           const ticketName = `ticket-${nameBase}-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -235,10 +245,13 @@ module.exports = (client) => {
           // prepare permission overwrites: deny everyone, allow owner, allow staff roles, allow bot
           const overwrites = [
             { id: guild.roles.everyone.id, deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
+            { id: MEMBER_ROLE_ID, deny: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
             { id: interaction.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] },
             { id: interaction.client.user.id, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] }
           ];
-          for (const roleId of STAFF_ROLE_IDS) overwrites.push({ id: roleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] });
+          for (const roleId of STAFF_ROLE_IDS.filter(roleId => guild.roles.cache.has(roleId))) {
+            overwrites.push({ id: roleId, allow: [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.ReadMessageHistory] });
+          }
 
           let ticketChannel;
           try {
@@ -246,9 +259,9 @@ module.exports = (client) => {
               name: ticketName,
               type: ChannelType.GuildText,
               parent: category.id,
-              topic: `Ticket from ${interaction.user.tag} | ${openDetails}`
+              topic: `Ticket from ${interaction.user.tag} | ${openDetails}`,
+              permissionOverwrites: overwrites
             });
-            await ticketChannel.permissionOverwrites.set(overwrites);
           } catch (err) {
             console.error('Error creating ticket channel:', err);
             return interaction.followUp({ content: 'There was an error creating the ticket channel. Check permissions.', ephemeral: true });
@@ -260,17 +273,18 @@ module.exports = (client) => {
           ticketSelections.delete(interaction.user.id);
 
           // Send the ticket details as plain text with the action buttons.
-          const ticketMessage = `**${selectedOption}**\n**User:** <@${interaction.user.id}>\n**Details:** ${openDetails}`;
+          const ticketMessage = `**:ticket: Ticket opened by** <@${interaction.user.id}>\n\n**Reason:** ${openDetails}\n\n**:wave: Hi <@${interaction.user.id}>! Thanks for reaching out.**\n\n**A staff member will be with you shortly. In the meantime:**\n\n• *Describe your issue clearly*\n• *Include screenshots if applicable*\n• *Be patient — we'll get back to you as soon as possible*\n• *Please type in English or Spanish*`;
 
           const claimButton = new ButtonBuilder().setCustomId('ticket_claim_button').setLabel('Claim Ticket').setStyle(ButtonStyle.Success);
           const closeButton = new ButtonBuilder().setCustomId('ticket_close_button').setLabel('Close Ticket').setStyle(ButtonStyle.Danger);
 
           try {
             await ticketChannel.send({ content: ticketMessage, components: [new ActionRowBuilder().addComponents(claimButton, closeButton)] });
-            await interaction.followUp({ content: `Ticket created: <#${ticketChannel.id}>`, ephemeral: true });
+            await interaction.editReply({ content: `Ticket Created! <#${ticketChannel.id}>` });
+            setTimeout(() => interaction.deleteReply().catch(() => {}), 6000);
           } catch (err) {
             console.error('Error sending ticket message:', err);
-            await interaction.followUp({ content: `Ticket created: <#${ticketChannel.id}>, but sending the message failed. Check permissions.`, ephemeral: true });
+            await interaction.editReply(`Ticket Created! <#${ticketChannel.id}>, but sending the message failed. Check permissions.`);
           }
 
           return;
