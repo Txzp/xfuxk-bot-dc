@@ -1,6 +1,6 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
 
-const TICKET_CHANNEL_ID = process.env.TICKET_CHANNEL_ID || '1536241118000324658';
+const TICKET_CHANNEL_ID = process.env.TICKET_CHANNEL_ID || '1545635562403401799';
 const TICKET_CATEGORY_ID = process.env.TICKET_CATEGORY_ID || '1536241332526514259';
 
 function buildTicketStarterEmbed() {
