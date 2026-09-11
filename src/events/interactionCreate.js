@@ -3,7 +3,7 @@ const { ChannelType, PermissionFlagsBits, ModalBuilder, TextInputBuilder, TextIn
 const ticketSelections = new Map();
 const ticketOwners = new Map();
 const ticketClaimers = new Map();
-const TICKET_CATEGORY_ID = process.env.TICKET_CATEGORY_ID || '1536241332526514259';
+const TICKET_CATEGORY_ID = process.env.TICKET_CATEGORY_ID || '1547807367758872586';
 const TICKET_CHANNEL_ID = process.env.TICKET_CHANNEL_ID || '1536241118000324658';
 const STAFF_ROLE_IDS = [
   '1529556626300866671',
@@ -88,21 +88,14 @@ module.exports = (client) => {
           try { ticketOwners.set(ticketChannel.id, interaction.user.id); } catch (e) { /* ignore */ }
 
           ticketSelections.delete(interaction.user.id);
-          // build embed and buttons using Builders to ensure compatibility
-          const embed = new EmbedBuilder()
-            .setTitle('Ticket Support')
-            .setDescription(`Se ha abierto este ticket para **${reason}**. Un miembro del staff te atenderá pronto.`)
-            .addFields(
-              { name: 'Usuario', value: `<@${interaction.user.id}>`, inline: true },
-              { name: 'Razón', value: reason, inline: true }
-            )
-            .setColor(0x00AE86);
-
           const claimButton = new ButtonBuilder().setCustomId('ticket_claim_button').setLabel('Claim Ticket').setStyle(ButtonStyle.Success);
           const closeButton = new ButtonBuilder().setCustomId('ticket_close_button').setLabel('Close Ticket').setStyle(ButtonStyle.Danger);
 
           try {
-            await ticketChannel.send({ embeds: [embed], components: [new ActionRowBuilder().addComponents(claimButton, closeButton)] });
+            await ticketChannel.send({
+              content: `**${reason}**\n**User:** <@${interaction.user.id}>`,
+              components: [new ActionRowBuilder().addComponents(claimButton, closeButton)]
+            });
           } catch (err) {
             console.error('Error enviando mensaje en canal de ticket:', err);
             try {
@@ -158,11 +151,14 @@ module.exports = (client) => {
           const parts = customId.split(':');
           const userId = parts[1];
           if (userId !== interaction.user.id) return interaction.reply({ content: 'Solo quien seleccionó puede continuar.', ephemeral: true });
-          // show recruitment modal to collect reason and details
-          const modal = new ModalBuilder().setCustomId(`ticket_recruit_modal:${interaction.user.id}`).setTitle('Open Ticket - Detalles');
-          const input1 = new TextInputBuilder().setCustomId('open_reason').setLabel('Razón por la que abres el ticket').setStyle(TextInputStyle.Short).setRequired(true);
-          const input2 = new TextInputBuilder().setCustomId('open_details').setLabel('Qué está pasando exactamente').setStyle(TextInputStyle.Paragraph).setRequired(true);
-          modal.addComponents(new ActionRowBuilder().addComponents(input1), new ActionRowBuilder().addComponents(input2));
+          // Show one input for the ticket explanation.
+          const modal = new ModalBuilder().setCustomId(`ticket_recruit_modal:${interaction.user.id}`).setTitle('Open Ticket');
+          const input = new TextInputBuilder()
+            .setCustomId('open_details')
+            .setLabel('Please explain what exactly is happening in english or spanish')
+            .setStyle(TextInputStyle.Paragraph)
+            .setRequired(true);
+          modal.addComponents(new ActionRowBuilder().addComponents(input));
           await interaction.showModal(modal).catch(err => {
             console.error('Error mostrando recruitment modal:', err);
             interaction.reply({ content: 'No pude abrir el modal de recruitment.', ephemeral: true }).catch(() => {});
@@ -222,7 +218,6 @@ module.exports = (client) => {
           const userId = parts[1];
           // only allow original user to submit
           if (userId !== interaction.user.id) return interaction.reply({ content: 'No autorizado.', ephemeral: true });
-          const openReason = interaction.fields.getTextInputValue('open_reason');
           const openDetails = interaction.fields.getTextInputValue('open_details');
           await interaction.reply({ content: 'Creando ticket...', ephemeral: true }).catch(() => {});
           const guild = interaction.guild;
@@ -250,7 +245,7 @@ module.exports = (client) => {
               name: ticketName,
               type: ChannelType.GuildText,
               parent: category.id,
-              topic: `Ticket de ${interaction.user.tag} | Razón: ${openReason}`
+              topic: `Ticket de ${interaction.user.tag} | ${openDetails}`
             });
             await ticketChannel.permissionOverwrites.set(overwrites);
           } catch (err) {
@@ -260,22 +255,17 @@ module.exports = (client) => {
 
           // register owner
           try { ticketOwners.set(ticketChannel.id, interaction.user.id); } catch (e) { }
+          const selectedOption = ticketSelections.get(interaction.user.id) || 'No especificado';
           ticketSelections.delete(interaction.user.id);
 
-          // send embed visible in the channel and buttons available (but handlers will check roles)
-          const selectedOption = ticketSelections.get(interaction.user.id) || 'No especificado';
-          const embed = new EmbedBuilder()
-            .setTitle('Ticket Support')
-            .setDescription(`**Opción:** ${selectedOption}\n**Razón:** ${openReason}\n**Detalles:** ${openDetails}`)
-            .addFields({ name: 'Usuario', value: `<@${interaction.user.id}>` })
-            .setColor(0x00AE86)
-            .setTimestamp();
+          // Send the ticket details as plain text with the action buttons.
+          const ticketMessage = `**${selectedOption}**\n**User:** <@${interaction.user.id}>\n**Details:** ${openDetails}`;
 
           const claimButton = new ButtonBuilder().setCustomId('ticket_claim_button').setLabel('Claim Ticket').setStyle(ButtonStyle.Success);
           const closeButton = new ButtonBuilder().setCustomId('ticket_close_button').setLabel('Close Ticket').setStyle(ButtonStyle.Danger);
 
           try {
-            await ticketChannel.send({ embeds: [embed], components: [new ActionRowBuilder().addComponents(claimButton, closeButton)] });
+            await ticketChannel.send({ content: ticketMessage, components: [new ActionRowBuilder().addComponents(claimButton, closeButton)] });
             await interaction.followUp({ content: `Ticket creado: <#${ticketChannel.id}>`, ephemeral: true });
           } catch (err) {
             console.error('Error enviando embed en canal de ticket (recruit):', err);

@@ -1,23 +1,27 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, EmbedBuilder, ChannelType, PermissionFlagsBits } = require('discord.js');
+const { ActionRowBuilder, StringSelectMenuBuilder, PermissionFlagsBits } = require('discord.js');
 
 const TICKET_CHANNEL_ID = process.env.TICKET_CHANNEL_ID || '1545635562403401799';
-const TICKET_CATEGORY_ID = process.env.TICKET_CATEGORY_ID || '1536241332526514259';
+const TICKET_CATEGORY_ID = process.env.TICKET_CATEGORY_ID || '1547807367758872586';
 
-function buildTicketStarterEmbed() {
-  return new EmbedBuilder()
-    .setTitle('Ticket Support')
-    .setDescription('[Abre ticket y elige que es lo que necesitas y se te responderá lo antes posible]')
-    .setColor(0x00AE86);
-}
+const TICKET_STARTER_MESSAGE = `**:ticket:  Need Help?**
+
+*Open a ticket and a staff member will be with you shortly.*
+
+**Please include:**
+*— What's the issue?*
+*— What have you already tried?*
+*— Any screenshots?*
+
+:warning: **Do NOT open multiple tickets for the same issue.**
+**:warning: Be respectful. Abusive tickets will be closed.**`;
 
 function buildTicketStarterComponents() {
   const selectMenu = new StringSelectMenuBuilder()
     .setCustomId('ticket_reason_select')
-    .setPlaceholder('Elige una opción')
+    .setPlaceholder('Choose an option')
     .addOptions([
-      { label: 'Soporte', value: 'Soporte' },
-      { label: 'Preguntas', value: 'Preguntas' },
-      { label: 'Buy Credits', value: 'Buy Credits' }
+      { label: '❓ Question', value: 'Question' },
+      { label: '🎫 Support', value: 'Support' }
     ]);
   // Initially only show the select menu. After a user selects, a Next button will be added.
   return [new ActionRowBuilder().addComponents(selectMenu)];
@@ -33,7 +37,7 @@ module.exports = {
     const targetChannel = await guild.channels.fetch(TICKET_CHANNEL_ID).catch(() => null);
     if (!targetChannel) return message.reply('No se encontró el canal de tickets configurado.');
 
-    await targetChannel.send({ embeds: [buildTicketStarterEmbed()], components: buildTicketStarterComponents() });
+    await targetChannel.send({ content: TICKET_STARTER_MESSAGE, components: buildTicketStarterComponents() });
     await message.reply({ content: `Mensaje de ticket creado en <#${TICKET_CHANNEL_ID}>`, ephemeral: true });
   },
   async executeInteraction(interaction) {
@@ -47,7 +51,7 @@ module.exports = {
       const targetChannel = await guild.channels.fetch(TICKET_CHANNEL_ID).catch(() => null);
       if (!targetChannel) return interaction.reply({ content: 'No se encontró el canal de tickets configurado.', ephemeral: true });
 
-      await targetChannel.send({ embeds: [buildTicketStarterEmbed()], components: buildTicketStarterComponents() });
+      await targetChannel.send({ content: TICKET_STARTER_MESSAGE, components: buildTicketStarterComponents() });
       await interaction.reply({ content: `Mensaje de ticket creado en <#${TICKET_CHANNEL_ID}>`, ephemeral: true });
     } catch (err) {
       console.error('Ticket interaction error', err);
