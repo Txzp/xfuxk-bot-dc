@@ -7,11 +7,15 @@ const TICKET_CATEGORY_ID = process.env.TICKET_CATEGORY_ID || '154780736775887258
 const TICKET_CHANNEL_ID = process.env.TICKET_CHANNEL_ID || '1545635562403401799';
 const MEMBER_ROLE_ID = '1545627254799736886';
 const STAFF_ROLE_IDS = [
-  '1529556626300866671',
-  '1529668878517407824',
-  '1529670461305393262'
+  '1545627254799736892',
+  '1545627254812311625',
+  '1545630012005154836'
 ];
 const LOGS_CHANNEL_ID = process.env.LOGS_CHANNEL_ID || '1533051943788875817';
+
+function hasStaffRole(member) {
+  return member?.roles?.cache?.some(role => STAFF_ROLE_IDS.includes(role.id));
+}
 
 module.exports = (client) => {
   client.on('interactionCreate', async (interaction) => {
@@ -118,7 +122,7 @@ module.exports = (client) => {
         if (customId === 'ticket_claim_button') {
           const channel = interaction.channel;
           if (!channel || !ticketOwners.has(channel.id)) return interaction.reply({ content: 'This button only works in ticket channels.', ephemeral: true });
-          const isStaff = interaction.member.roles.cache.some(r => STAFF_ROLE_IDS.includes(r.id));
+          const isStaff = hasStaffRole(interaction.member);
           if (!isStaff) return interaction.reply({ content: 'You do not have permission to claim tickets.', ephemeral: true });
           const ownerId = ticketOwners.get(channel.id);
           ticketClaimers.set(channel.id, interaction.user.id);
@@ -134,7 +138,7 @@ module.exports = (client) => {
         if (customId === 'ticket_close_button') {
           const channel = interaction.channel;
           if (!channel || !ticketOwners.has(channel.id)) return interaction.reply({ content: 'This button only works in ticket channels.', ephemeral: true });
-          const isStaffClose = interaction.member.roles.cache.some(r => STAFF_ROLE_IDS.includes(r.id));
+          const isStaffClose = hasStaffRole(interaction.member);
           if (!isStaffClose) return interaction.reply({ content: 'You do not have permission to close tickets.', ephemeral: true });
           const modal = new ModalBuilder()
             .setCustomId(`ticket_close_modal:${channel.id}`)
@@ -294,6 +298,11 @@ module.exports = (client) => {
       if (interaction.isChatInputCommand && interaction.isChatInputCommand()) {
         const cmd = client.commands.get(interaction.commandName);
         if (!cmd) return interaction.reply({ content: 'Command not implemented.', ephemeral: true });
+
+        const memberRoleOnly = interaction.member?.roles?.cache?.has(MEMBER_ROLE_ID) && !hasStaffRole(interaction.member);
+        if (memberRoleOnly && interaction.commandName !== 'about') {
+          return interaction.reply({ content: 'The Member role can only use /about.', ephemeral: true });
+        }
 
         try {
           if (typeof cmd.executeInteraction === 'function') {
