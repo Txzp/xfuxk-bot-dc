@@ -52,7 +52,7 @@ client.on('messageCreate', async (message) => {
     if (levelUp) {
       const levelChannel = await message.guild.channels.fetch(LEVEL_UP_CHANNEL_ID).catch(() => null);
       if (levelChannel) {
-        await levelChannel.send(`<@${message.author.id}> just reached **Level ${levelUp.level}**!`);
+        await levelChannel.send(`<@${message.author.id}>! You’ve leveled up to ` + '`Level ' + levelUp.level + '`!');
       }
     }
   } catch (err) {

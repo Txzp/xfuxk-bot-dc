@@ -1,3 +1,4 @@
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { getLeaderboard } = require('../level-system');
 
 const LEADERBOARD_CHANNEL_ID = '1548056682020610170';
@@ -9,7 +10,7 @@ function buildLeaderboardContent(guild, entries) {
     return `${index + 1}. ${userName} — **Level ${entry.level}** (\`${entry.xp} XP\`)`;
   });
 
-  return `**🏆 Top 10 — xFuxk Guidelines**\n\n${lines.length ? lines.join('\n') : 'No XP has been earned yet.'}`;
+  return `**🛡️ Top 10 — xFuxk Guidelines**\n\n${lines.length ? lines.join('\n') : 'No XP has been earned yet.'}`;
 }
 
 module.exports = {
@@ -25,6 +26,16 @@ module.exports = {
     }
 
     const entries = getLeaderboard(interaction.guild.id, 10);
-    return interaction.reply({ content: buildLeaderboardContent(interaction.guild, entries), ephemeral: true });
+    const viewTopButton = new ButtonBuilder()
+      .setCustomId('level_view_top')
+      .setLabel('View Top')
+      .setStyle(ButtonStyle.Primary);
+    return interaction.reply({
+      content: buildLeaderboardContent(interaction.guild, entries),
+      components: [new ActionRowBuilder().addComponents(viewTopButton)],
+      ephemeral: true
+    });
   }
 };
+
+module.exports.buildLeaderboardContent = buildLeaderboardContent;

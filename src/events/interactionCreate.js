@@ -12,6 +12,7 @@ const STAFF_ROLE_IDS = [
   '1545630012005154836'
 ];
 const LOGS_CHANNEL_ID = process.env.LOGS_CHANNEL_ID || '1533051943788875817';
+const LEADERBOARD_CHANNEL_ID = '1548056682020610170';
 
 function hasStaffRole(member) {
   return member?.roles?.cache?.some(role => STAFF_ROLE_IDS.includes(role.id));
@@ -36,6 +37,15 @@ module.exports = (client) => {
 
       if (interaction.isButton && interaction.isButton()) {
         const customId = interaction.customId;
+        if (customId === 'level_view_top') {
+          if (interaction.channelId !== LEADERBOARD_CHANNEL_ID) {
+            return interaction.reply({ content: `Use this button in <#${LEADERBOARD_CHANNEL_ID}>.`, ephemeral: true });
+          }
+          const leaderboard = require('../commands/leaderboard');
+          await interaction.reply({ content: leaderboard.buildLeaderboardContent(interaction.guild, require('../level-system').getLeaderboard(interaction.guild.id, 10)), ephemeral: true });
+          setTimeout(() => interaction.deleteReply().catch(() => {}), 10000);
+          return;
+        }
         if (customId === 'ticket_open_button') {
           // Defer reply immediately to avoid "The application did not respond" while we create the channel
           await interaction.deferReply({ ephemeral: true }).catch(() => {});

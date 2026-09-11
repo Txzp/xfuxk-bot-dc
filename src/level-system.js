@@ -1,11 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const { PermissionFlagsBits } = require('discord.js');
-
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const DATA_FILE = path.join(DATA_DIR, 'levels.json');
 const MAX_LEVEL = 50;
-const XP_PER_LEVEL = 100;
+const XP_PER_MESSAGE = 0.5;
+const BASE_XP_PER_LEVEL = 100;
+const XP_GROWTH_RATE = 1.2;
 const LEVEL_ROLE_PREFIX = 'Level ';
 const SEPARATOR_ROLE_NAME = '----------';
 
@@ -30,12 +30,33 @@ function getGuildData(guildId) {
 }
 
 function getLevel(xp) {
-  return Math.min(MAX_LEVEL, Math.floor(xp / XP_PER_LEVEL) + 1);
+  let level = 1;
+  while (level < MAX_LEVEL && xp >= getXpRequiredForLevel(level + 1)) level += 1;
+  return level;
 }
 
 function getXpForNextLevel(level) {
-  return level >= MAX_LEVEL ? null : level * XP_PER_LEVEL;
+  return level >= MAX_LEVEL ? null : getXpRequiredForLevel(level + 1);
 }
+
+function getXpRequiredForLevel(level) {
+  if (level <= 1) return 0;
+  let total = 0;
+  for (let currentLevel = 1; currentLevel < level; currentLevel += 1) {
+    total += BASE_XP_PER_LEVEL * (XP_GROWTH_RATE ** (currentLevel - 1));
+  }
+  return total;
+}
+
+const LEVEL_COLORS = [
+  0x95a5a6, 0x7f8c8d, 0x3498db, 0x2980b9, 0x1abc9c, 0x16a085, 0x2ecc71, 0x27ae60,
+  0xf1c40f, 0xf39c12, 0xe67e22, 0xd35400, 0xe74c3c, 0xc0392b, 0x9b59b6, 0x8e44ad,
+  0x34495e, 0x2c3e50, 0x00bcd4, 0x0097a7, 0xff6f61, 0xff4757, 0x5f27cd, 0x341f97,
+  0x00d2d3, 0x01a3a4, 0xff9f43, 0xee5253, 0x10ac84, 0x222f3e, 0x54a0ff, 0x2e86de,
+  0x48dbfb, 0x0abde3, 0x1dd1a1, 0x10ac84, 0xffd32a, 0xff9f43, 0xff6b6b, 0xee5253,
+  0xc8d6e5, 0x8395a7, 0x576574, 0x222f3e, 0x5f27cd, 0x341f97, 0x00d2d3, 0x01a3a4,
+  0xfeca57, 0xff9f43
+];
 
 async function ensureLevelRoles(guild) {
   const roles = [];
@@ -43,7 +64,7 @@ async function ensureLevelRoles(guild) {
   if (!separator) {
     separator = await guild.roles.create({
       name: SEPARATOR_ROLE_NAME,
-      color: 0x2b2d31,
+      colors: { primary: 0x2b2d31 },
       reason: 'Level system separator role'
     });
   }
@@ -53,8 +74,11 @@ async function ensureLevelRoles(guild) {
     if (!role) {
       role = await guild.roles.create({
         name: `${LEVEL_ROLE_PREFIX}${level}`,
+        colors: { primary: LEVEL_COLORS[level - 1] },
         reason: 'Level system role'
       });
+    } else {
+      await role.edit({ colors: { primary: LEVEL_COLORS[level - 1] } }).catch(() => {});
     }
     roles.push(role);
   }
@@ -81,7 +105,7 @@ async function awardMessageXp(message) {
   const guildData = getGuildData(message.guild.id);
   const current = guildData[message.author.id] || { xp: 0, level: 1 };
   const previousLevel = getLevel(current.xp);
-  current.xp = Math.min(current.xp + 1, MAX_LEVEL * XP_PER_LEVEL);
+  current.xp = Math.min(current.xp + XP_PER_MESSAGE, getXpRequiredForLevel(MAX_LEVEL));
   current.level = getLevel(current.xp);
   guildData[message.author.id] = current;
   saveData();
@@ -105,7 +129,8 @@ function getLeaderboard(guildId, limit = 10) {
 
 module.exports = {
   MAX_LEVEL,
-  XP_PER_LEVEL,
+  XP_PER_MESSAGE,
+  getXpRequiredForLevel,
   SEPARATOR_ROLE_NAME,
   getLevel,
   getXpForNextLevel,
