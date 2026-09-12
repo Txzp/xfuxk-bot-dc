@@ -18,6 +18,7 @@ function loadData() {
 }
 
 let data = loadData();
+const roleSetupPromises = new Map();
 
 function saveData() {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -59,6 +60,18 @@ const LEVEL_COLORS = [
 ];
 
 async function ensureLevelRoles(guild) {
+  if (roleSetupPromises.has(guild.id)) return roleSetupPromises.get(guild.id);
+
+  const setupPromise = setupLevelRoles(guild);
+  roleSetupPromises.set(guild.id, setupPromise);
+  setupPromise.catch(error => {
+    roleSetupPromises.delete(guild.id);
+    console.error(`Could not set up level roles in ${guild.name}:`, error);
+  });
+  return setupPromise;
+}
+
+async function setupLevelRoles(guild) {
   const roles = [];
   let separator = guild.roles.cache.find(role => role.name === SEPARATOR_ROLE_NAME);
   if (!separator) {
@@ -78,7 +91,9 @@ async function ensureLevelRoles(guild) {
         reason: 'Level system role'
       });
     } else {
-      await role.edit({ colors: { primaryColor: LEVEL_COLORS[level - 1] } }).catch(() => {});
+      await role.edit({ colors: { primaryColor: LEVEL_COLORS[level - 1] } }).catch(error => {
+        console.error(`Could not update color for ${role.name}:`, error);
+      });
     }
     roles.push(role);
   }
@@ -91,12 +106,20 @@ async function ensureLevelRoles(guild) {
 }
 
 async function applyLevelRole(member, level, roles) {
+  if (!member) return;
   const targetRole = roles.find(role => role.name === `${LEVEL_ROLE_PREFIX}${level}`);
   if (!targetRole) return;
 
+  if (!targetRole.editable || !member.manageable) {
+    console.error(`Cannot assign ${targetRole.name}: check that the bot role is above level roles.`);
+    return;
+  }
+
   const oldRoles = roles.filter(role => role.id !== targetRole.id && member.roles.cache.has(role.id));
-  if (oldRoles.length) await member.roles.remove(oldRoles).catch(() => {});
-  if (!member.roles.cache.has(targetRole.id)) await member.roles.add(targetRole).catch(() => {});
+  if (oldRoles.length) await member.roles.remove(oldRoles).catch(error => console.error('Could not remove old level role:', error));
+  if (!member.roles.cache.has(targetRole.id)) {
+    await member.roles.add(targetRole).catch(error => console.error(`Could not assign ${targetRole.name}:`, error));
+  }
 }
 
 async function awardMessageXp(message) {
@@ -112,7 +135,8 @@ async function awardMessageXp(message) {
 
   try {
     const roles = await ensureLevelRoles(message.guild);
-    await applyLevelRole(message.member, current.level, roles);
+    const member = message.member || await message.guild.members.fetch(message.author.id).catch(() => null);
+    await applyLevelRole(member, current.level, roles);
   } catch (error) {
     console.error('Could not update level roles:', error);
   }

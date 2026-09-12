@@ -16,7 +16,9 @@ module.exports = (client) => {
   client.once('clientReady', () => {
     console.log(`${client.user.tag} is online.`);
     for (const guild of client.guilds.cache.values()) {
-      ensureLevelRoles(guild).catch(error => console.error('Could not create level roles:', error));
+      ensureLevelRoles(guild).then(roles => {
+        console.log(`Level system ready in ${guild.name}: ${roles.length} level roles available.`);
+      }).catch(error => console.error('Could not create level roles:', error));
       client.channels.fetch(LEVELBOARD_CHANNEL_ID).then(async channel => {
         if (!channel) return;
         const recentMessages = await channel.messages.fetch({ limit: 50 }).catch(() => null);
