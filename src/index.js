@@ -7,7 +7,7 @@ const path = require('path');
 const { Client, Collection, GatewayIntentBits, Partials } = require('discord.js');
 const { awardMessageXp } = require('./level-system');
 
-const LEVEL_UP_CHANNEL_ID = '1547805832748732506';
+const LEVEL_UP_CHANNEL_ID = '1548149122421489724';
 
 const client = new Client({
   intents: [
