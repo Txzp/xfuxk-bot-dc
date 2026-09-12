@@ -18,6 +18,15 @@ function hasStaffRole(member) {
   return member?.roles?.cache?.some(role => STAFF_ROLE_IDS.includes(role.id));
 }
 
+function buildLeaderboardContent(guild, entries) {
+  const lines = entries.map((entry, index) => {
+    const member = guild.members.cache.get(entry.userId);
+    const userName = member?.displayName || member?.user.username || 'Unknown User';
+    return `${index + 1}. ${userName} — **Level ${entry.level}** (\`${entry.xp} XP\`)`;
+  });
+  return `**🛡️ Top 10 — xFuxk Guidelines**\n\n${lines.length ? lines.join('\n') : 'No XP has been earned yet.'}`;
+}
+
 module.exports = (client) => {
   client.on('interactionCreate', async (interaction) => {
     try {
@@ -41,8 +50,8 @@ module.exports = (client) => {
           if (interaction.channelId !== LEADERBOARD_CHANNEL_ID) {
             return interaction.reply({ content: `Use this button in <#${LEADERBOARD_CHANNEL_ID}>.`, ephemeral: true });
           }
-          const leaderboard = require('../commands/leaderboard');
-          await interaction.reply({ content: leaderboard.buildLeaderboardContent(interaction.guild, require('../level-system').getLeaderboard(interaction.guild.id, 10)), ephemeral: true });
+          const { getLeaderboard } = require('../level-system');
+          await interaction.reply({ content: buildLeaderboardContent(interaction.guild, getLeaderboard(interaction.guild.id, 10)), ephemeral: true });
           setTimeout(() => interaction.deleteReply().catch(() => {}), 10000);
           return;
         }

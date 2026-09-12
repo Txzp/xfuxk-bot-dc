@@ -11,7 +11,8 @@ module.exports = {
     try {
       const apiPing = Math.round(interaction.client.ws.ping);
       const latency = Date.now() - interaction.createdTimestamp;
-      await interaction.reply({ content: `Pong! API: ${apiPing}ms | Interaction: ${latency}ms` });
+      await interaction.reply({ content: `Pong! API: ${apiPing}ms | Interaction: ${latency}ms`, ephemeral: true });
+      setTimeout(() => interaction.deleteReply().catch(() => {}), 7500);
     } catch (err) {
       console.error('Ping interaction error', err);
       if (!interaction.replied) await interaction.reply({ content: 'Error obteniendo latencia.', ephemeral: true });

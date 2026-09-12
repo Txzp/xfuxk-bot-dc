@@ -110,8 +110,12 @@ async function awardMessageXp(message) {
   guildData[message.author.id] = current;
   saveData();
 
-  const roles = await ensureLevelRoles(message.guild);
-  await applyLevelRole(message.member, current.level, roles);
+  try {
+    const roles = await ensureLevelRoles(message.guild);
+    await applyLevelRole(message.member, current.level, roles);
+  } catch (error) {
+    console.error('Could not update level roles:', error);
+  }
 
   if (current.level > previousLevel && current.level <= MAX_LEVEL) {
     return { level: current.level, xp: current.xp };

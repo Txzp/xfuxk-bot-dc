@@ -54,7 +54,7 @@ client.on('messageCreate', async (message) => {
         console.error('Could not fetch the level-up channel:', error);
         return null;
       });
-      if (levelChannel) {
+      if (levelChannel?.isTextBased()) {
         await levelChannel.send(`<@${message.author.id}>! You’ve leveled up to ` + '`Level ' + levelUp.level + '`!');
       }
     }
