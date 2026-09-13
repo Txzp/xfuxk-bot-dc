@@ -8,7 +8,7 @@ module.exports = (client) => {
         await member.roles.add(role).catch(err => console.error('Could not assign the Member role:', err));
       }
 
-      const channelId = process.env.WELCOME_CHANNEL_ID || '1545627255877804081';
+      const channelId = process.env.WELCOME_CHANNEL_ID || '';
       const channel = member.guild.channels.cache.get(channelId) || member.guild.systemChannel;
       if (channel) {
         channel.send(`<@${member.id}> *join to* **xFuxk Community**`);
