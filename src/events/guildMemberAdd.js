@@ -11,7 +11,7 @@ module.exports = (client) => {
       const channelId = process.env.WELCOME_CHANNEL_ID || '1545627255877804081';
       const channel = member.guild.channels.cache.get(channelId) || member.guild.systemChannel;
       if (channel) {
-        channel.send(`<@${member.id}> **👋 Welcome to xFuxk Guidelines!** Read the rules! <#1547808241411424337>`);
+        channel.send(`<@${member.id}> *join to* **xFuxk Community**`);
       }
     } catch (err) {
       console.error('Error in guildMemberAdd:', err);
