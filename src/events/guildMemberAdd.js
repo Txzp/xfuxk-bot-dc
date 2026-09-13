@@ -1,7 +1,7 @@
 module.exports = (client) => {
   client.on('guildMemberAdd', async (member) => {
     try {
-      const roleId = process.env.MEMBER_ROLE_ID || '1545627254799736886';
+      const roleId = process.env.MEMBER_ROLE_ID || '';
       const roleName = process.env.MEMBER_ROLE_NAME || 'Member';
       const role = member.guild.roles.cache.get(roleId) || member.guild.roles.cache.find(r => r.name === roleName);
       if (role) {
