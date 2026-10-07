@@ -321,8 +321,8 @@ module.exports = (client) => {
         if (!cmd) return interaction.reply({ content: 'Command not implemented.', ephemeral: true });
 
         const memberRoleOnly = interaction.member?.roles?.cache?.has(MEMBER_ROLE_ID) && !hasStaffRole(interaction.member);
-        if (memberRoleOnly && interaction.commandName !== 'about') {
-          return interaction.reply({ content: 'The Member role can only use /about.', ephemeral: true });
+        if (memberRoleOnly && !['about', 'invite'].includes(interaction.commandName)) {
+          return interaction.reply({ content: 'The Member role can only use /about and /invite.', ephemeral: true });
         }
 
         try {
